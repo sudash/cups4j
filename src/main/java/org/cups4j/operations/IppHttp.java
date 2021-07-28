@@ -5,6 +5,7 @@ import java.nio.charset.StandardCharsets;
 import org.apache.commons.codec.binary.Base64;
 import org.apache.commons.lang.StringUtils;
 import org.apache.http.HttpHeaders;
+import org.apache.http.HttpHost;
 import org.apache.http.client.config.RequestConfig;
 import org.apache.http.client.methods.HttpPost;
 import org.apache.http.impl.client.CloseableHttpClient;
@@ -18,20 +19,45 @@ public final class IppHttp {
 	private static final int MAX_CONNECTION_BUFFER = 20;
 
 	private static final int CUPSTIMEOUT = Integer.parseInt(System.getProperty("cups4j.timeout", "10000"));
+	
+	private static final String HTTP_PROXY_HOST = System.getProperty("http.proxyHost");
+	
+	private static final String HTTP_PROXY_PORT = System.getProperty("http.proxyPort");
 
 	private static final RequestConfig requestConfig = RequestConfig.custom()
 			.setSocketTimeout(CUPSTIMEOUT).setConnectTimeout(CUPSTIMEOUT)
 			.build();
 
-	private static final CloseableHttpClient client = HttpClientBuilder.create()
-			.disableCookieManagement()
-			.disableRedirectHandling()
-			.evictExpiredConnections()
-			.setMaxConnPerRoute(MAX_CONNECTION_BUFFER)
-			.setMaxConnTotal(MAX_CONNECTION_BUFFER)
-			.setRetryHandler(new DefaultHttpRequestRetryHandler())
-			.build();
+	private static final CloseableHttpClient client;
 
+	static {
+		
+		if(HTTP_PROXY_HOST != null && !HTTP_PROXY_HOST.isEmpty() && HTTP_PROXY_PORT!= null && !HTTP_PROXY_PORT.isEmpty()) {
+			System.out.println("SETTING PROXY IN IPP CLIENT ");
+			
+			client = HttpClientBuilder.create()
+					.disableCookieManagement()
+					.disableRedirectHandling()
+					.evictExpiredConnections()
+					.setMaxConnPerRoute(MAX_CONNECTION_BUFFER)
+					.setMaxConnTotal(MAX_CONNECTION_BUFFER)
+					.setProxy(new HttpHost(HTTP_PROXY_HOST, Integer.parseInt(HTTP_PROXY_PORT)))
+					.setRetryHandler(new DefaultHttpRequestRetryHandler())
+					.build();
+		}else {
+			System.out.println("Did not find proxy details, creating normal http client ");
+			client = HttpClientBuilder.create()
+					.disableCookieManagement()
+					.disableRedirectHandling()
+					.evictExpiredConnections()
+					.setMaxConnPerRoute(MAX_CONNECTION_BUFFER)
+					.setMaxConnTotal(MAX_CONNECTION_BUFFER)
+					.setRetryHandler(new DefaultHttpRequestRetryHandler())
+					.build();
+		}
+		
+	}
+	
 	private IppHttp() {
 	}
 
